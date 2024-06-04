@@ -29,9 +29,20 @@ import org.apache.rocketmq.common.message.MessageQueue;
 public class AllocateMessageQueueAveragely implements AllocateMessageQueueStrategy {
     private final InternalLogger log = ClientLogger.getLog();
 
+    /**
+     * 分配消息队列给指定的消费者组和消费者ID。
+     *
+     * @param consumerGroup 消费者组名，不可为空。
+     * @param currentCID 当前消费者ID，不可为空或空字符串。
+     * @param mqAll 所有可用的消息队列列表，不可为空。
+     * @param cidAll 所有消费者ID的列表，不可为空。
+     * @return 返回分配给当前消费者ID的消息队列列表。
+     * @throws IllegalArgumentException 如果currentCID、mqAll或cidAll为空或不合法，抛出此异常。
+     */
     @Override
     public List<MessageQueue> allocate(String consumerGroup, String currentCID, List<MessageQueue> mqAll,
-        List<String> cidAll) {
+                                       List<String> cidAll) {
+        // 校验参数合法性
         if (currentCID == null || currentCID.length() < 1) {
             throw new IllegalArgumentException("currentCID is empty");
         }
@@ -43,26 +54,31 @@ public class AllocateMessageQueueAveragely implements AllocateMessageQueueStrate
         }
 
         List<MessageQueue> result = new ArrayList<MessageQueue>();
+        // 检查当前CID是否在cidAll列表中
         if (!cidAll.contains(currentCID)) {
             log.info("[BUG] ConsumerGroup: {} The consumerId: {} not in cidAll: {}",
-                consumerGroup,
-                currentCID,
-                cidAll);
+                    consumerGroup,
+                    currentCID,
+                    cidAll);
             return result;
         }
 
+        // 计算每个消费者应该分配的消息队列数量
         int index = cidAll.indexOf(currentCID);
         int mod = mqAll.size() % cidAll.size();
         int averageSize =
-            mqAll.size() <= cidAll.size() ? 1 : (mod > 0 && index < mod ? mqAll.size() / cidAll.size()
-                + 1 : mqAll.size() / cidAll.size());
+                mqAll.size() <= cidAll.size() ? 1 : (mod > 0 && index < mod ? mqAll.size() / cidAll.size()
+                        + 1 : mqAll.size() / cidAll.size());
         int startIndex = (mod > 0 && index < mod) ? index * averageSize : index * averageSize + mod;
         int range = Math.min(averageSize, mqAll.size() - startIndex);
+
+        // 分配消息队列
         for (int i = 0; i < range; i++) {
             result.add(mqAll.get((startIndex + i) % mqAll.size()));
         }
         return result;
     }
+
 
     @Override
     public String getName() {

@@ -24,6 +24,9 @@ public class QueueData implements Comparable<QueueData> {
     private String brokerName;
     private int readQueueNums;
     private int writeQueueNums;
+    // 读写queue数目，假设在这个broker里我有8个读队列，4个写队列，并不是指总共12个队列，而是指总共8个，其中有4个是只能读的，另外4个是能读能写的。
+    // 这样做的目的是做queue的扩缩容。
+    // 例如：8个写，8个读，我想缩成4个写，4个读，那么首先把写队列缩成4个，这样就只有4个队列会有新数据写入，另外4个就只消费，等消费完毕就讲读队列也缩成4
     private int perm;
     private int topicSysFlag;
 
@@ -99,8 +102,8 @@ public class QueueData implements Comparable<QueueData> {
     @Override
     public String toString() {
         return "QueueData [brokerName=" + brokerName + ", readQueueNums=" + readQueueNums
-            + ", writeQueueNums=" + writeQueueNums + ", perm=" + perm + ", topicSysFlag=" + topicSysFlag
-            + "]";
+                + ", writeQueueNums=" + writeQueueNums + ", perm=" + perm + ", topicSysFlag=" + topicSysFlag
+                + "]";
     }
 
     @Override
